@@ -689,30 +689,40 @@ ggplot(ratios, aes(x = size, weight = count/2292.5)) +
   ggtitle("Regression normalized size distribution") +
   geom_hline(yintercept = 1.0, linetype = "dashed", color = "red")
 
-#ggplot heatmap normalized to 1 ----------------------------------------------
-#Loo wants a heatmap with the midpoint = 1.0
-#He wants normalized data to show what is more or less abundant
-#In theory, this works by taking the mean when all the depths are combined
-#The problem is that everything would be below that line on the heatmap.
-#So I am going to try something different
-#Take the data and only keep mean+2sd
-#Then find the mean of the mean+2sd data
-#That new mean=1.0 on the scale
-#plot the data as a heatmap
+#ggplot heatmap eliminating mortality across depth ----------------------------------------------
 
-#new vector that only has mean+2sd from `normalized_by_regression`
-heatmap_scale1 <- normalized_by_regression[which(normalized_by_regression$count <= 338.75 & normalized_by_regression$size<40),]
-#normalize count with x-min(x)/max(x)-min(x)
-  #this normalization creates a value range 0-1
-  #multiply that formula by 2 so that the midpoint is 1 instead of 0.5
-heatmap_scale1$count <- 2*(heatmap_scale1$count-min(heatmap_scale1$count))/(max(heatmap_scale1$count)-min(heatmap_scale1$count))
+#In the size distribution curve, we eliminated the effect of mortality across all depths
+#but that doesn't account for the slope of mortality once the counts are spread across depth
+#Steps:
+  #1. normalize the data so that the mean of 2-19cm=1.0
+    #is is analagous to drawing a flat line at 2-19cm on the size distribution
+  #2. Use the ratios from the overall size distribution and multiple each cell by that ratio
+  #3. the result should be that 2-19cm are multiplied by 1 and everything else is multiplied by something >1
 
+#new dataframe to mess up
+heatmap_scale1 <- normalized_by_regression[which(normalized_by_regression$size<=40),]
+#find mean of 2-19cm
+#divide everything in $count by that mean
+heatmap_scale1$count <- heatmap_scale1$count / 
+  mean(heatmap_scale1$count[which(heatmap_scale1$size>=2 & heatmap_scale1$size<=19)])
+
+#multiply count by the ratio
+for(i in 1:nrow(heatmap_scale1)){
+  heatmap_scale1$count[i] <- heatmap_scale1$count[i] * heatmap_scale1$ratio[i]
+}
+
+#keep only mean+2sd
+heatmap_scale1 <- heatmap_scale1[which(heatmap_scale1$count<= (mean(heatmap_scale1$count)+2*sd(heatmap_scale1$count))),]
+
+#make the scale 0-1
+heatmap_scale1$count <- (heatmap_scale1$count - min(heatmap_scale1$count)) / (max(heatmap_scale1$count) - min(heatmap_scale1$count))
+  
 #plot the normalized data
 ggplot(data = heatmap_scale1, aes(x=size, y=depth, fill=count)) +
   geom_tile() +
-  scale_fill_distiller(type = "div", palette = "Spectral") +
+  scale_fill_distiller(type = "div", palette = "RdBu", name = "Relative abundance") +
   theme_dark() +
-  ggtitle("Something interesing this way comes")
+  ggtitle("Controlling for mortality across size and depth")
 
 # kelp vs everything and depth -------------------------------------------------------------------
 #Loo wants two plots that show the frequency of observations in at each depth in- and outside of kep forest
