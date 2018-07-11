@@ -867,5 +867,3 @@ for(i in 19:45){
   mortality$F[which(mortality$size==i)] <- 0.094944*(38.15-i)-0.312
   }
 }
-
-#test changes
