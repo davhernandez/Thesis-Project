@@ -593,8 +593,8 @@ rm(list = "i")
 #40-49cm spit out negative values
 #so I decided to use the absolute value of the ratio
 normalized_by_regression$ratio[42:44] <- abs(normalized_by_regression$ratio[42:44])
-#ratios for 39-40cm are incosistent with the trend, so we decided to just take the ratio for 38cm for both
-normalized_by_regression$ratio[38:39] <- normalized_by_regression$ratio[37]
+#ratios for 38-40cm are incosistent with the trend, so we decided to just take the ratio for 37cm for both
+normalized_by_regression$ratio[37:39] <- normalized_by_regression$ratio[36]
 
 #eliminate the `count` column so that it can be replaced later
 normalized_by_regression$count <- NULL
