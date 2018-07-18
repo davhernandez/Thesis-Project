@@ -877,3 +877,7 @@ for(i in 19:45){
   mortality$F[which(mortality$size==i)] <- 0.094944*(38.15-i)-0.312
   }
 }
+<<<<<<< HEAD
+=======
+
+>>>>>>> parent of 58f5c7f... Testing to see where the repository is located by sending a commit
