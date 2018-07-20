@@ -389,11 +389,17 @@ bins_F0.1 <- seq(0,(ceiling(max(Blue_sizeobs_F0.1)/bin_w))*bin_w, by = bin_w)
 bins_F0.2 <- seq(0,(ceiling(max(Blue_sizeobs_F0.2)/bin_w))*bin_w, by = bin_w)
 bins_F0.25 <- seq(0,(ceiling(max(Blue_sizeobs_F0.25)/bin_w))*bin_w, by = bin_w)
 
-hist(Blue_sizeobs_F0, breaks = c(bins_F0), xlab = "Size (cm)", main = "Blue F=0", ylim =c(0,120)) #Also will need to add to hist function:  prob = TRUE
-hist(Blue_sizeobs_F0.05, breaks = c(bins_F0.05), xlab = "Size (cm)", main = "Blue F=0.05", ylim =c(0,120), add = TRUE, col = 2)
-hist(Blue_sizeobs_F0.1, breaks = c(bins_F0.1), xlab = "Size (cm)", main = "Blue F=0.1", ylim =c(0,120), add = TRUE, col = "blue")
-hist(Blue_sizeobs_F0.2, breaks = c(bins_F0.2), xlab = "Size (cm)", main = "Blue F=0.2", ylim =c(0,120), add = TRUE, col = "green")
-hist(Blue_sizeobs_F0.25, breaks = c(bins_F0.25), xlab = "Size (cm)", main = "Blue F=0.25", ylim =c(0,120), add = TRUE, col = "black")
-legend("topleft", c("F=0", "F=0.05", "F=0.1","F=0.2","F=0.25"), fill=c("white", "red", "blue", "green", "black"), bty = "n")
+hist(Blue_sizeobs_F0, breaks = c(bins_F0), xlab = "Size (cm)", main = "BRF simulated size distribution", ylim =c(0,120)) #Also will need to add to hist function:  prob = TRUE
+hist(Blue_sizeobs_F0.05, breaks = c(bins_F0.05), xlab = "Size (cm)", main = "Blue F=0.05", ylim =c(0,130), add = TRUE, col = 2)
+hist(Blue_sizeobs_F0.1, breaks = c(bins_F0.1), xlab = "Size (cm)", main = "Blue F=0.1", ylim =c(0,130), add = TRUE, col = "blue")
+hist(Blue_sizeobs_F0.2, breaks = c(bins_F0.2), xlab = "Size (cm)", main = "Blue F=0.2", ylim =c(0,130), add = TRUE, col = "green")
+#hist(Blue_sizeobs_F0.25, breaks = c(bins_F0.25), xlab = "Size (cm)", main = "Blue F=0.25", ylim =c(0,130), add = TRUE, col = "black")
+legend("topleft", c("F=0", "F=0.05", "F=0.1","F=0.2"), fill=c("white", "red", "blue", "green"), bty = "n", cex =0.75)
 
+#plotting without F=0
+hist(Blue_sizeobs_F0.05, breaks = c(bins_F0.05), xlab = "Size (cm)", main = "BRF simulated size distribution", ylim =c(0,90), col = 2)
+hist(Blue_sizeobs_F0.1, breaks = c(bins_F0.1), xlab = "Size (cm)", main = "Blue F=0.1", ylim =c(0,130), add = TRUE, col = "blue")
+hist(Blue_sizeobs_F0.2, breaks = c(bins_F0.2), xlab = "Size (cm)", main = "Blue F=0.2", ylim =c(0,130), add = TRUE, col = "green")
+#hist(Blue_sizeobs_F0.25, breaks = c(bins_F0.25), xlab = "Size (cm)", main = "Blue F=0.25", ylim =c(0,130), add = TRUE, col = "black")
+legend("topleft", c("F=0.05", "F=0.1","F=0.2"), fill=c("red", "blue", "green"), bty = "n", cex =0.75)
 
