@@ -27,7 +27,7 @@ eqn=function(l,y,parms) {
 #l=seq(1,parms[3]-0.01,length=10000); #sequence of lengths, previously 10000; another option: length=round(parms[3]
 
 ##blue rockfish parms
-y=c(N1=20);
+y=c(N1=1000);
 parms=c(k=0.172, M=0.14, Linf=38.15);
 l=seq(1,parms[3]-0.01,length=10000); #sequence of lengths, previously 10000; another option: length=round(parms[3]
 
@@ -95,7 +95,7 @@ Blue_sizes$size_obs[i] <- list(rnorm(Blue_sizes$N_mean_size[i], mean = Blue_size
 
 Blue_sizeobs_F0 <- unlist(Blue_sizes$size_obs)
 
-hist(Blue_sizeobs_F0, breaks = 100, xlab = "Size (cm)", main = "Blue F=0", ylim = c(0,25))
+hist(Blue_sizeobs_F0, breaks = 100, xlab = "Size (cm)", main = "Blue F=0", ylim = c(0,3000))
 
 ########### Higher values of F for Blue
 
@@ -181,7 +181,7 @@ Blue_sizeobs_F0.05 <- unlist(Blue_sizes$size_obs)
 hist(Blue_sizeobs_F0.05, breaks = 100, xlab = "Size (cm)", main = "Blue F=0.05", ylim =c(0,15))
 
 #F=0.1 ----------------------------------------------------------
-y=c(N1=20);
+y=c(N1=1000);
 len_F <- round(10000 *((Linf-Lfish)/Linf))
 l=seq(Lfish, round(parms[3]),length=len_F); #round(Linf-Lfish)
 parms=c(k=0.172, M=0.14, Linf=38.15, Fi=0.1);
@@ -243,10 +243,11 @@ Blue_sizes$size_obs[i] <- list(rnorm(Blue_sizes$N_mean_size[i], mean = Blue_size
 
 Blue_sizeobs_F0.1 <- unlist(Blue_sizes$size_obs)
 
-hist(Blue_sizeobs_F0.1, breaks = 100, xlab = "Size (cm)", main = "Blue F=0.1", ylim =c(0,15))
+hist(Blue_sizeobs_F0.1, breaks = 100, xlab = "Size (cm)", main = "Blue F=0.1", ylim =c(0,450))
+abline(v=size_at_age, col="Red")
 
 #F=0.2--------------------------------------------------------------------------------------
-y=c(N1=20);
+y=c(N1=1000);
 len_F <- round(10000 *((Linf-Lfish)/Linf))
 l=seq(Lfish, round(parms[3]),length=len_F); #round(Linf-Lfish)
 parms=c(k=0.172, M=0.14, Linf=38.15, Fi=0.2);
@@ -309,7 +310,7 @@ Blue_sizes$size_obs[i] <- list(rnorm(Blue_sizes$N_mean_size[i], mean = Blue_size
 
 Blue_sizeobs_F0.2 <- unlist(Blue_sizes$size_obs)
 
-hist(Blue_sizeobs_F0.2, breaks = 100, xlab = "Size (cm)", main = "Blue F=0.2", ylim =c(0,15))
+hist(Blue_sizeobs_F0.2, breaks = 100, xlab = "Size (cm)", main = "Blue F=0.2", ylim =c(0,200))
 
 #F=0.25----------------------------------------------------------------------
 y=c(N1=20);
