@@ -3,6 +3,7 @@
 rm(list = ls())
 library(dplyr)
 library(ggplot2)
+library(lubridate)
 
 # CCCFRP dates --------------------------------------
 
@@ -43,3 +44,41 @@ joined_dates <- rbind(sample_date[, c("Date", "Frequency", "source")], smys[,c("
 #stacked bar plot of when each fish was sampled
 ggplot(joined_dates, aes(x = Date, y = Frequency, fill = source)) +
   geom_bar(stat='identity')
+
+# plotting just month and day ---------------------------
+#this combines all of the data across years to look at the trend in what time of year the samples were taken
+#this section uses lubridate package to reach its goal. The previous section did it in base R
+sample_date <- mutate(sample_date, Month_Day = paste(month(sample_date$Month, label = TRUE), sample_date$Day, sep = "-"))
+
+smys <- mutate(smys, Month_Day = paste(month(smys$month, label = TRUE), smys$day, sep = "-"))
+
+joined_months <- rbind(sample_date[, c("Month_Day", "Frequency", "source")], smys[,c("Month_Day", "Frequency", "source")])
+
+#collapsing all matching data points together
+joined_months <- joined_months %>%
+  na.omit %>%
+  group_by(Month_Day, source) %>%
+  summarise(Frequency = sum(Frequency))
+
+#what if I mutate and extract the name of the month `month(data, label = TRUE)` and the day number and then forgo the as.Date?
+
+ggplot(joined_months, aes(x = Month_Day, y = Frequency, fill=source)) +
+  geom_bar(stat="identity")
+
+#plotting just the months ---------------------------------------------------------------------
+
+sample_date <- mutate(sample_date, Months = month(sample_date$Month, label = TRUE))
+
+smys <- mutate(smys, Months = month(smys$month, label = TRUE))
+
+joined_months <- rbind(sample_date[, c("Months", "Frequency", "source")], smys[,c("Months", "Frequency", "source")])
+
+#collapsing all matching data points together
+joined_months <- joined_months %>%
+  na.omit %>%
+  group_by(Months, source) %>%
+  summarise(Frequency = sum(Frequency))
+
+ggplot(joined_months, aes(x = Months, y = Frequency, fill=source)) +
+  geom_bar(stat="identity") +
+  ggtitle("Samples based on month collected")
