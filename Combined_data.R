@@ -7,6 +7,7 @@ library(ggplot2)
 library(scales)
 library(plotly) #for making contour plots
 library(webshot) #for exporting plotly output
+library(ggridges)
 
 #the first part of this code is lifted from CCFRP_Mixed_CPUE.R
 #The second part is lifted from PISCO_abundance.R
@@ -116,14 +117,6 @@ if (exists("effort") == TRUE) {
 # divide the CPUE by the row sum before adding it to total catch matrix
 
 tidy <- function(catch, drifts){
-  # intialize matricies and variables in this area
-  
-  #!!!!!!!!
-  # These are placeholders to check the code.
-  # REMOVE BEFORE RUNNING THE FUNCTION
-  #catch <- BothSpecies
-  #drifts <- all_drifts_raw
-  #!!!!!!!
   
   # initialize variables
   # max and min depth
@@ -593,8 +586,8 @@ rm(list = "i")
 #40-49cm spit out negative values
 #so I decided to use the absolute value of the ratio
 normalized_by_regression$ratio[42:44] <- abs(normalized_by_regression$ratio[42:44])
-#ratios for 39-40cm are incosistent with the trend, so we decided to just take the ratio for 38cm for both
-normalized_by_regression$ratio[38:39] <- normalized_by_regression$ratio[37]
+#ratios for 38-40cm are incosistent with the trend, so we decided to just take the ratio for 37cm for both
+normalized_by_regression$ratio[37:39] <- normalized_by_regression$ratio[36]
 
 #eliminate the `count` column so that it can be replaced later
 normalized_by_regression$count <- NULL
@@ -688,6 +681,41 @@ ggplot(ratios, aes(x = size, weight = count/2292.5)) +
   geom_bar() +
   ggtitle("Regression normalized size distribution") +
   geom_hline(yintercept = 1.0, linetype = "dashed", color = "red")
+
+#size distributions ggridges ----------------------------------------------------------------
+#start by using normalized_by_regression so that mortality isn't an issue
+#make a categorical variable for the depths 0-10, 11-20, 21-30, 31-40, 41-50
+#categorical variable is input into new column `depth_range`
+normalized_by_regression$depth_range <- 0
+for(i in 1:nrow(normalized_by_regression)){
+  if(normalized_by_regression$depth[i]<=10){
+    normalized_by_regression$depth_range[i] <- "0-10"
+  } else
+    if(normalized_by_regression$depth[i]<=20 && normalized_by_regression$depth[i] >10){
+      normalized_by_regression$depth_range[i] <- "11-20"
+  } else
+    if(normalized_by_regression$depth[i]<=30 && normalized_by_regression$depth[i] >20){
+      normalized_by_regression$depth_range[i] <- "21-30"
+  } else
+    if(normalized_by_regression$depth[i]<=40 && normalized_by_regression$depth[i] >30){
+      normalized_by_regression$depth_range[i] <- "31-40"
+  } else
+    if(normalized_by_regression$depth[i]<=50 && normalized_by_regression$depth[i] >40){
+      normalized_by_regression$depth_range[i] <- "41-50"
+    } else {
+      print("something messed up")
+    }
+}
+
+#group them together within the categories
+ggridges_plot <- normalized_by_regression %>%
+  group_by(size, depth_range) %>%
+  summarise(abundance = sum(count))
+
+#plot overlapping size distributions with ggridges
+ggplot(ggridges_plot, aes(x = size, y = depth_range, height = abundance)) +
+  geom_density_ridges(stat="identity") +
+  ggtitle("Regression normalized size distributions across depth")
 
 #ggplot heatmap eliminating mortality across depth ----------------------------------------------
 
@@ -877,7 +905,3 @@ for(i in 19:45){
   mortality$F[which(mortality$size==i)] <- 0.094944*(38.15-i)-0.312
   }
 }
-<<<<<<< HEAD
-=======
-
->>>>>>> parent of 58f5c7f... Testing to see where the repository is located by sending a commit
