@@ -431,46 +431,14 @@ log_combined$count <- log(log_combined$count)
 rm(list = "log_pisco", "log_ccfrp")
 
 #the size 
-ggplot(data=log_combined[which(log_combined$size>=20 & log_combined$size<=27),] , aes(x=size, y = count, col=source)) +
+ggplot(data=log_combined[which(log_combined$size>=19 & log_combined$size<=25),] , aes(x=size, y = count, col=source)) +
   geom_point() +
   geom_smooth(method = "lm", se=FALSE) +
-  ggtitle("log[20-27cm] regression")
+  ggtitle("log[19-25cm] regression")
 
-# heatmap combined data ---------------------------------------------------
-#putting the combined data into a matrix that can be used to display a heatmap
+# heatmap combined data ------------------------------------------
 
 tidy_heatmap <- tidy(catch = BothSpecies)
-tidy_heatmap$CPUE <- tidy_heatmap$CPUE * converter
-tidy_heatmap <- rename(tidy_heatmap, count = CPUE) %>%
-  select(size, depth, count)
-bb6_heatmap <- rename(bb6, size = length)
-#combined the two datasets
-combined_heatmap_data <- rbind(tidy_heatmap, bb6_heatmap)
-
-#initializing matrix to be populated
-combined_heatmap_matrix <- matrix(0L,
-                                  ncol = max(combined_heatmap_data$size) - min(combined_heatmap_data$size) + 1,
-                                  nrow = max(combined_heatmap_data$depth) - min(combined_heatmap_data$depth) + 1)
-#name the columns based on size
-colnames(combined_heatmap_matrix) <- c(dQuote(min(combined_heatmap_data$size):max(combined_heatmap_data$size)))
-#name the rows based on depth
-rownames(combined_heatmap_matrix) <- c(dQuote(min(combined_heatmap_data$depth):max(combined_heatmap_data$depth)))
-
-for(i in 1:nrow(combined_heatmap_data)){
-  #add count to the count in the named column and row
-  combined_heatmap_matrix[dQuote(combined_heatmap_data$depth[i]), dQuote(combined_heatmap_data$size[i])] <- combined_heatmap_matrix[dQuote(combined_heatmap_data$depth[i]), dQuote(combined_heatmap_data$size[i])] + combined_heatmap_data$count[i]
-  #start with how to call the named column or row
-  #then figure out how to add onto the value already there.
-}
-
-#clean up the environment
-rm(list = "tidy_heatmap", "bb6_heatmap", "combined_heatmap_data")
-
-heatmap(combined_heatmap_matrix, Rowv = NA, Colv = NA, margins = c(3,3), labRow = 1:42, labCol = 2:49, main = "Combined Heatmap", ylab = "Depth (m)", xlab = "Size (cm)", cexRow = 1.2, cexCol = 1.2)
-
-# ggplot heatmap ------------------------------------------
-
-tidy_heatmap <- tidy(catch = BothSpecies, drifts = all_drifts_raw)
 tidy_heatmap$CPUE <- tidy_heatmap$CPUE * converter
 tidy_heatmap <- rename(tidy_heatmap, count = CPUE)
 tidy_heatmap <- select(tidy_heatmap, size, depth, count)
@@ -482,51 +450,6 @@ combined_heatmap_data <- combined_heatmap_data %>%
   group_by(size, depth) %>%
   summarize(count = sum(count))
 rm(list = "tidy_heatmap", "bb6_heatmap")
-#makes a range of values from 0 to the top of your scale
-main_val = seq(0,600, length=8)
-#selecting the color range that you want to use. This must be equal to the length of main_val
-mycol = c("blue","cyan","cadetblue1", "aquamarine", "yellow", "orange", "orangered", "red")
-
-#making the heatmap again, but this time with ggplot to control the tile scale better
-ggplot(data = combined_heatmap_data[which(combined_heatmap_data$count<=600),], aes(x=size,y=depth,fill=count)) +
-  geom_tile()+
-  scale_fill_gradientn(colours = mycol, values = scales::rescale(main_val), breaks = c(0,200,400,600,800)) + #begin and end controls the color pallete. Breaks sets the value range
-  ggtitle("Heatmap of Combined data (cutoff @ 600)") +
-  #sets a bounding box around PISCO and CCFRP data. the `+0.5` or `-0.5` is to set the offset
-  geom_rect(xmin=2-0.5, xmax=49+0.5, ymin=1-0.5, ymax=30+0.5, color="black",alpha=0.5, fill=NA, size = 0.3) +
-  geom_rect(xmin=7-0.5, xmax=45+0.5, ymin=5-0.5, ymax=42+0.5, color="black",alpha=0.5, fill=NA, size = 0.3)
-
-
-#ggplot heatmap control across size ----------------------------------------
-
-#normalize each size value so that you can compare two sizes at the same depth
-#ratio is the count for the size class that was most abundant divided by the count for a size class.
-combined_dataset$ratio <- sapply(1:nrow(combined_dataset), function(x) max(combined_dataset$count)/combined_dataset$count[x])
-size_and_ratio <- as.data.frame(cbind(combined_dataset$size, combined_dataset$ratio))
-size_and_ratio<- rename(size_and_ratio, size = V1, ratio = V2)
-size_and_ratio <- merge(size_and_ratio,combined_heatmap_data, by ="size")
-#multiple each count by the ratio
-for(i in 1:nrow(size_and_ratio)){
-  size_and_ratio$count[i] <- size_and_ratio$count[i] * size_and_ratio$ratio[i]
-}
-
-#plotting it with the entire range of values
-ggplot(data = size_and_ratio, aes(x=size,y=depth, fill= count)) +
-  geom_tile() +
-  scale_fill_gradientn(colours = mycol, values = scales::rescale(main_val), breaks = c(0,200,400,600,800)) + #begin and end controls the color pallete. Breaks sets the value range
-  ggtitle("Heatmap of normalized sizes (entire range)") +
-  #sets a bounding box around PISCO and CCFRP data. the `+0.5` or `-0.5` is to set the offset
-  geom_rect(xmin=2-0.5, xmax=49+0.5, ymin=1-0.5, ymax=30+0.5, color="black",alpha=0.5, fill=NA, size = 0.3) +
-  geom_rect(xmin=7-0.5, xmax=45+0.5, ymin=5-0.5, ymax=42+0.5, color="black",alpha=0.5, fill=NA, size = 0.3)
-
-#using a cutoff of mean+2sd for better resolution
-ggplot(data = size_and_ratio[which(size_and_ratio$count<=828),], aes(x=size,y=depth, fill= count)) +
-  geom_tile() +
-  scale_fill_gradientn(colours = mycol, values = scales::rescale(main_val), breaks = c(0,200,400,600,800)) + #begin and end controls the color pallete. Breaks sets the value range
-  ggtitle("Heatmap of normalized sizes (cutoff at mean+2sd, 828)") +
-  #sets a bounding box around PISCO and CCFRP data. the `+0.5` or `-0.5` is to set the offset
-  geom_rect(xmin=2-0.5, xmax=49+0.5, ymin=1-0.5, ymax=30+0.5, color="black",alpha=0.5, fill=NA, size = 0.3) +
-  geom_rect(xmin=7-0.5, xmax=45+0.5, ymin=5-0.5, ymax=42+0.5, color="black",alpha=0.5, fill=NA, size = 0.3)
 
 
 #ggplot heatmap controlled across size w/ regression line ----------------------------------------
