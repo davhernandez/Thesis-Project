@@ -2,7 +2,7 @@
 
 # setup ---------------------------
 
-rm(list = ls())
+#rm(list = ls())
 library(dplyr)
 library(geosphere)
 library(ggplot2)
@@ -46,7 +46,7 @@ BothSpecies$end_depth <- BothSpecies$end_depth * 0.3048
 BothSpecies$start_depth <- floor(BothSpecies$start_depth)
 BothSpecies$end_depth <- floor(BothSpecies$end_depth)
 #Filter for the months July, August, September
-#the only to filter with multiple character values is to put them in a variable and then use `%in%``
+#the only way to filter with multiple character values is to put them in a variable and then use `%in%``
 summer_months <- c("July", "August", "September")
 BothSpecies <- filter(BothSpecies, Month %in% summer_months)
 rm(list = "summer_months")
@@ -150,22 +150,17 @@ tidy <- function(catch){
   tidy_data <- data.frame(row.names = c("site", "size", "depth", "catch"))
   
   
-  #loops
-  # calculate CPUE per site
-  for(x in 1:nrow(catch)){ #this will run through every row in the BLU_only_depths matrix
-    # x counts the row of the BLU_only_depths matrix that is being currently worked on
-    # determine if the start or end depth is deeper and save the deeper value
-    # pmax stands for parallel maximum, which compares two columns and finds the maximum value
-    deeper <- pmax(catch$start_depth[x], catch$end_depth[x])
-    # determine if the start or end depth is shallower and save the shallower depth
-    shallower <-pmin(catch$start_depth[x], catch$end_depth[x])
-    # new dataframe to collect all the data in this iteration of the loop
-    this_fish <- data.frame(site = c(rep(substr(catch$IDCell.per.Trip[x], 0, 3), times = (deeper - shallower +1))), size = c(rep(catch$size[x], times = (deeper - shallower +1))), depth = c(shallower:deeper), catch = c(rep(1, times = (deeper - shallower +1))))
-    # Add 1 to the column associated with the fish's length and all the rows in the range of depths fished for that drift
-    tidy_data <- rbind(tidy_data, this_fish)
-    # time keeper
-    print(x)
-  }
+  #this is the section of code that Duncan Lang vectorized in the Beyond R Basics workshop. It replaces the old loop.
+  mn = pmin(catch$start_depth, catch$end_depth)
+  mx = pmax(catch$start_depth, catch$end_depth)    
+  nrep = mx - mn + 1
+  tidy_data = data.frame(site = rep(substr(catch$IDCell.per.Trip, 0, 3), nrep),
+                         size = rep(catch$size,  nrep),
+                         depth = unlist(mapply(`:`, mn, mx, SIMPLIFY = FALSE)))
+  tidy_data$catch = 1
+  
+  #Duncan added this line, which doesn't work because there is no `tmp` variable. If it did, it would call rbind for all parts of the list `tmp`. However the tidy_data df already is combined without the need for a do.call
+  #tidy_data = do.call(rbind, tmp)
   
   # tallies the number of columns that match the 'group_by' call and collapses them down to one row
   tidy_data <- tidy_data %>%
@@ -173,7 +168,6 @@ tidy <- function(catch){
     tally()
   # matches the depth column in 'effort' to the depth column in 'tidy_data' and inputs the associated effort value as a new column in tidy-data
   tidy_data$effort <- effort[match(tidy_data$depth, effort$depth), 2]
-  
   
   # Trying to control for the posibility that one site contributed the majority of the CPUE to the grand total, thereby masking the data from the other sites.
   # The way that it is being calculated here makes the assumption that, since they fished the same number of tansects, they fished for the same amount of time at each location
@@ -301,22 +295,13 @@ bb7 <- rename(bb7, size = length)
 #trying to get a sense of what the conversion ratio should be
 # PISCO counts of size 19-25cm divided by CCFRP 19-25cm counts
 sum(bb7$count[bb7$size >= 19 & bb7$size <= 25]) / sum(tidy_data$count[tidy_data$size >= 19 & tidy_data$size<= 25])
-# ratio is 67.91852
+# ratio is 22.95381
 
 #PISCO 20-25/CCFRP 20-25
 sum(bb7$count[bb7$size >= 20 & bb7$size <= 25]) / sum(tidy_data$count[tidy_data$size >= 20 & tidy_data$size<= 25])
+# ratio is 19.72613
 
-#PISCO 21-25/CCFRP 21-25
-sum(bb7$count[bb7$size >= 21 & bb7$size <= 25]) / sum(tidy_data$count[tidy_data$size >= 21 & tidy_data$size<= 25])
-# ratio is 50.525
 
-#PISCO 20-26/CCFRP 20-26
-sum(bb7$count[bb7$size >= 20 & bb7$size <= 26]) / sum(tidy_data$count[tidy_data$size >= 20 & tidy_data$size<= 26])
-# ratio is 47.28337
-
-#PISCO 21-26/CCFRP 21-26
-sum(bb7$count[bb7$size >= 21 & bb7$size <= 26]) / sum(tidy_data$count[tidy_data$size >= 21 & tidy_data$size<= 26])
-# ratio is 49.69914
 
 # conversion estimate -------------------------
 
@@ -398,7 +383,7 @@ ggplot(stacked_dist, aes(x=size, y=count, fill = source)) +
   theme(panel.background = element_rect(fill = 'white'),
         panel.grid.major = element_line(colour = "black"),
         panel.grid.minor = element_line(colour = "black"))
-rm(list = "stack_PISCO","stack_CCFRP","stacked_dist")
+ rm(list = "stack_PISCO","stack_CCFRP","stacked_dist")
 
 # regression mortality slope ----------------------------------------------------------------------------
 # plot the regression of log[20-45]
@@ -422,17 +407,17 @@ ggplot(data=log_combined[which(log_combined$size>=19 & log_combined$size<=45),] 
   geom_point() +
   geom_smooth(data=log_combined[which(log_combined$size>=19 & log_combined$size<=33),], method = "lm", se=FALSE) +
   geom_smooth(data=log_combined[which(log_combined$size>=34 & log_combined$size<=45),], method = "lm", se=FALSE) +
-  ggtitle("log[19-33cm] & log[34-45cm] size distribution") +
-  geom_text(label="y= -0.07917x + 8.71043", aes(x=30,y=7.5)) +
-  geom_text(label="y= -0.552x + 24.254", aes(x=40,y=5))
+  ggtitle("log[19-33cm] & log[34-45cm] size distribution (summer)") +
+  geom_text(label="y= -0.06872x + 8.13579", aes(x=30,y=7.5)) +
+  geom_text(label="y= -0.5425x + 23.5469", aes(x=40,y=5))
 
 
 #plotting PISCO and CCRFP 19-25cm on same plot
 #trying to figure out if the mortality of the two differs substantially
 
 #sample code for getting ggplot regression
-ggplot(mydata, aes(x=tb, y=ts, col=pop)) + geom_point() +
-  geom_smooth(method="lm", se=FALSE)
+  #ggplot(mydata, aes(x=tb, y=ts, col=pop)) + geom_point() +
+  #  geom_smooth(method="lm", se=FALSE)
 
 #combine pisco and converted ccfrp into one df with a column that denotes which source of data each comes from
 log_pisco <- bb7
@@ -443,7 +428,7 @@ log_ccfrp$source <- "CCFRP"
 log_combined <- rbind(log_ccfrp,log_pisco)
 log_combined$count <- log(log_combined$count)
 #clean-up so that only `log_combined` remains
-rm(list = "log_pisco", "log_ccrfp")
+rm(list = "log_pisco", "log_ccfrp")
 
 #the size 
 ggplot(data=log_combined[which(log_combined$size>=20 & log_combined$size<=27),] , aes(x=size, y = count, col=source)) +
@@ -454,7 +439,7 @@ ggplot(data=log_combined[which(log_combined$size>=20 & log_combined$size<=27),] 
 # heatmap combined data ---------------------------------------------------
 #putting the combined data into a matrix that can be used to display a heatmap
 
-tidy_heatmap <- tidy(catch = BothSpecies, drifts = all_drifts_raw)
+tidy_heatmap <- tidy(catch = BothSpecies)
 tidy_heatmap$CPUE <- tidy_heatmap$CPUE * converter
 tidy_heatmap <- rename(tidy_heatmap, count = CPUE) %>%
   select(size, depth, count)
