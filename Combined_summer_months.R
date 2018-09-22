@@ -363,6 +363,8 @@ CCFRP_converted$count <- tidy_data$count * converter
 combined_dataset <- rbind(bb7, CCFRP_converted) %>%
   group_by(size) %>%
   summarise(count = sum(count))
+#after using group_by, there is a weird error where it gives multiple warnings: "Unknown column 'depth'". This is because group_by is making it both a tibble and a dataframe. To get rid of the error, just make `combined_dataset` a dataframe
+combined_dataset <- data.frame(combined_dataset)
 
 # combined size distribution ----------------------------------------------
 ggplot(combined_dataset, aes(x=size, weight=count)) +
@@ -438,6 +440,7 @@ ggplot(data=log_combined[which(log_combined$size>=19 & log_combined$size<=25),] 
 
 # heatmap combined data ------------------------------------------
 
+#creating the combined data to play around with for the heatmaps
 tidy_heatmap <- tidy(catch = BothSpecies)
 tidy_heatmap$CPUE <- tidy_heatmap$CPUE * converter
 tidy_heatmap <- rename(tidy_heatmap, count = CPUE)
@@ -453,32 +456,31 @@ rm(list = "tidy_heatmap", "bb6_heatmap")
 
 
 #ggplot heatmap controlled across size w/ regression line ----------------------------------------
-#the previous section controlled across size by making a ratio of the count at a size to the maximum count (7cm)
 #the problem is that it is using noisy data to make a noisy conversion
 #this will plot a flat line across 1-19cm, a regression line 20-33cm, and a regression line34-45cm
 #the new ratio will be the point on the line at a size divided by maximum count (7cm)
 #for the line @ 1-19cm, it will be the value of the regression line @ 20cm
 
 #fit regression line for 34-40cm
-#equation is y = -114.3x + 4460.9
+#equation is y = -43.72x + 1704.86
 lm(combined_dataset$count[33:39] ~ combined_dataset$size[33:39])
 
 
-#fit regression line for 20-33cm
-#equation is y = -105.6x + 4404.5
-#lm(combined_dataset$count[19:32] ~ combined_dataset$size[19:32])
+#fit regression line for 19-33cm
+#equation is y = -37.18x + 1569.93
+lm(combined_dataset$count[18:32] ~ combined_dataset$size[18:32])
 
-#value for the flat line is y = -105.6x + 4404.5
-#where x = 20
-# value = 2292.5
+#value for the flat line is y = -37.18x + 1569.93
+#where x = 19
+# value = 863.51
 
 #plot of the original datasets with the regression lines on top
 ggplot(combined_dataset, aes(x =  size, weight = count)) +
   geom_bar() +
-  geom_segment(x = 2, y = 2292.5, xend = 19, yend = 2292.5, color = "Red", size = 0.1) +
-  geom_segment(x = 20, y = 2292.5, xend = 33, yend = 919.7, color = "Red", size = 0.1) +
-  geom_segment(x = 34, y = 574.7, xend = 40, yend = -111.1, color = "Red", size = 0.1) +
-  ggtitle("Size distribution with regression lines for ratios")
+  geom_segment(x = 2, y = 909.86, xend = 19, yend = 909.86, color = "Red", size = 0.1) +
+  geom_segment(x = 19, y = 909.86, xend = 33, yend = 377.02, color = "Red", size = 0.1) +
+  geom_segment(x = 34, y = 218.38, xend = 40, yend = -43.94, color = "Red", size = 0.1) +
+  ggtitle("Size distribution with regression lines for ratios (summer)")
 
 
 #normalizing the count data using the regression lines
@@ -487,26 +489,38 @@ normalized_by_regression <- mutate(normalized_by_regression, ratio = 0)
 #this code gets a bit jenk b/c there are no observations for 1cm or 43 cm, so I have to add to i in order to have the right size
 for(i in 1:44){
   if(i+1 <= 20){ #i+1 because 1cm is missing. e.g 15cm is in row 14
-    normalized_by_regression$ratio[i] <- 5039.7754905/2292.5
+    normalized_by_regression$ratio[i] <- max(normalized_by_regression$count)/909.86
   } else if(i+1 > 20 & i+1 < 34){
-    normalized_by_regression$ratio[i] <- 5039.7754905/(-105.6*(i+1)+4404.5)
+    normalized_by_regression$ratio[i] <- max(normalized_by_regression$count)/(-37.18*(i+1)+1569.93)
   } else if (i+1 >=34 & i+1 < 43){
-    normalized_by_regression$ratio[i] <- 5039.7754905/(-136.8*(i+1)+5263)
+    normalized_by_regression$ratio[i] <- max(normalized_by_regression$count)/(-43.72*(i+1)+1704.86)
   } else if(i==42 || i==43){
-    normalized_by_regression$ratio[i] <- 5039.7754905/(-136.8*(i+2)+5263) #i+2 is the size in row 42&43 because 1cm and 43cm are missing
+    normalized_by_regression$ratio[i] <- max(normalized_by_regression$count)/(-43.72*(i+2)+1704.86) #i+2 is the size in row 42&43 because 1cm and 43cm are missing
   } else {
-    normalized_by_regression$ratio[i] <- 5039.7754905/(-136.8*(49)+5263)
+    normalized_by_regression$ratio[i] <- max(normalized_by_regression$count)/(-43.72*(49)+1704.86)
   }
 }
+
+#There is a much smarter way to do this
+normalized_by_regression$ratio[which(normalized_by_regression$size >=2 & normalized_by_regression$size <=18)] <- max(normalized_by_regression$count)/909.86
+#ratio for 19-33cm
+normalized_by_regression$ratio[which(normalized_by_regression$size >=19 & normalized_by_regression$size <=32)] <- apply(normalized_by_regression$count,1, function (x) max(normalized_by_regression$count[x])/909.86)
 
 rm(list = "i")
 
 #fiddling with ratios that are out of line
-#40-49cm spit out negative values
-#so I decided to use the absolute value of the ratio
-normalized_by_regression$ratio[42:44] <- abs(normalized_by_regression$ratio[42:44])
-#ratios for 38-40cm are incosistent with the trend, so we decided to just take the ratio for 37cm for both
-normalized_by_regression$ratio[37:39] <- normalized_by_regression$ratio[36]
+#39-49cm spit out negative values
+#ratios for 39-49cm are incosistent with the trend, so we decided to just take the ratio for 38cm for both
+normalized_by_regression$ratio[which(normalized_by_regression$size>=39)] <- normalized_by_regression$ratio[37]
+
+#Normalize the ratios so that the ratio for 2-19cm =1 instead of 2.19
+#essentially, dividing all ratios by the ratio for 2-19cm
+normalized_by_regression$ratio <- normalized_by_regression$ratio/normalized_by_regression$ratio[1]
+
+#plot of the conversion ratios shows that the ratios above 40cm are off the chart
+ggplot(normalized_by_regression, aes(x = size, y = ratio)) +
+  geom_bar(stat = 'identity') +
+  ggtitle("Size distribution ratios (summer)")
 
 #eliminate the `count` column so that it can be replaced later
 normalized_by_regression$count <- NULL
@@ -515,21 +529,17 @@ normalized_by_regression$count <- NULL
 #associating ratio with each size at each depth
 normalized_by_regression <- merge(normalized_by_regression,combined_heatmap_data, by ="size")
 
-#Normalize the ratios so that the ratio for 2-19cm =1 instead of 2.19
-#essentially, dividing all ratios by the ratio for 2-19cm
-normalized_by_regression$ratio <- normalized_by_regression$ratio/normalized_by_regression$ratio[1]
-
 #multiply count by the ratio
 for(i in 1:nrow(normalized_by_regression)){
   normalized_by_regression$count[i] <- normalized_by_regression$count[i] * normalized_by_regression$ratio[i]
 }
 
-#plot of the conversion ratios shows that the ratios above 40cm are off the chart
+
 #So the heatmap only includes <=40cm
-#using a cutoff of mean+2sd for resolution
-#something broke when reproducing the normalized_by_regression plots. The mean+2sd is not 112
-#!!!!!recheck mean+2sd!!!!!
-ggplot(data = normalized_by_regression[which(normalized_by_regression$count<=112 & normalized_by_regression$size<=40),],
+#using a cutoff of mean+2sd = 133.3458 for resolution
+  #mean(normalized_by_regression$count[which(normalized_by_regression$size<=40)]) + 2*sd(normalized_by_regression$count[which(normalized_by_regression$size<=40)])
+
+ggplot(data = normalized_by_regression[which(normalized_by_regression$count<=134 & normalized_by_regression$size<=40),],
        aes(x=size,y=depth, fill= count)) +
   geom_tile() +
   scale_fill_gradientn(colours = mycol, values = scales::rescale(main_val), breaks = c(0,20,40,60,80, 100, 120)) + #begin and end controls the color pallete. Breaks sets the value range
@@ -539,19 +549,22 @@ ggplot(data = normalized_by_regression[which(normalized_by_regression$count<=112
   geom_rect(xmin=7-0.5, xmax=45+0.5, ymin=5-0.5, ymax=42+0.5, color="black",alpha=0.5, fill=NA, size = 0.3)
 
 
+
 #plotting only depths <=30m
-ggplot(data = normalized_by_regression[which(normalized_by_regression$depth>=30 & normalized_by_regression$count<=521),], aes(x=size,y=depth, fill= count)) +
+#using a cutoff of mean+2sd = 30.75108 for resolution
+  #mean(normalized_by_regression$count[which(normalized_by_regression$depth>=30)]) + 2*sd(normalized_by_regression$count[which(normalized_by_regression$depth>=30)])
+
+ggplot(data = normalized_by_regression[which(normalized_by_regression$depth>=30 & normalized_by_regression$count<=31),], aes(x=size,y=depth, fill= count)) +
   geom_tile() +
   scale_fill_gradientn(colours = mycol, values = scales::rescale(main_val), breaks = c(0,100,200,300)) + #begin and end controls the color pallete. Breaks sets the value range
-  ggtitle("Regression-normalized sizes in deeper water(cutoff at mean+2sd, 521)")
+  ggtitle("Regression-normalized sizes in deeper water(summer)")
 
 
 
 #rescaled the data so that the plot scale is 0-1
 normalized_rescaled <- normalized_by_regression [which(normalized_by_regression$size<=40),]
-#mean+2sd is 229.1472
-#!!!!!!! recheck mean+2sd calculation b/c you plotted a new right-hand regression!!!!!!
-normalized_rescaled <- normalized_rescaled [which(normalized_rescaled$count<=230),]
+#mean+2sd = 133.3458
+normalized_rescaled <- normalized_rescaled [which(normalized_rescaled$count<=134),]
 normalized_rescaled$count <- normalized_rescaled$count/max(normalized_rescaled$count)
 #change the name of $count to $Relative abundance
 normalized_rescaled <- rename(normalized_rescaled, Relative_abundance = count)
