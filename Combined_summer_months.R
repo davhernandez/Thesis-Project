@@ -717,34 +717,7 @@ ggplot(data = heatmap_scale1, aes(x=size, y=depth, fill=count)) +
 
 #Using the above data (eliminating for mortality across size and depth) but with a log transformation to get better resolution for the tail values
 
-#First doing the log-transform without cutting off any data
-heatmap_scale2 <- normalized_by_regression[which(normalized_by_regression$size<=40),]
-#find mean of 2-19cm
-#divide everything in $count by that mean
-heatmap_scale2$count <- heatmap_scale2$count / 
-  mean(heatmap_scale2$count[which(heatmap_scale2$size>=2 & heatmap_scale2$size<=19)])
-
-#multiply count by the ratio
-for(i in 1:nrow(heatmap_scale2)){
-  heatmap_scale2$count[i] <- heatmap_scale2$count[i] * heatmap_scale2$ratio[i]
-}
-
-#log-tranform the counts
-heatmap_scale2$log_count <- log(heatmap_scale2$count)
-
-#make the scale 0-1
-heatmap_scale2$count <- (heatmap_scale2$count - min(heatmap_scale2$count)) / (max(heatmap_scale2$count) - min(heatmap_scale2$count))
-
-#plot the log-transformation
-ggplot(data = heatmap_scale2, aes(x=size, y=depth, fill=count)) +
-  geom_tile() +
-  scale_fill_distiller(type = "div", palette = "RdBu", name = "Relative abundance") +
-  theme_dark() +
-  ggtitle("Log-tranformed controlling for mortality across size and depth (no cutoff)")
-
-
-
-# Reapeat the above steps, but use a cutoff of mean+2sd
+#new df to mess around in
 heatmap_scale2 <- normalized_by_regression[which(normalized_by_regression$size<=40),]
 
 #find mean of 2-19cm
