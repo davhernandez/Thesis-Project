@@ -301,7 +301,14 @@ sum(bb7$count[bb7$size >= 19 & bb7$size <= 25]) / sum(tidy_data$count[tidy_data$
 sum(bb7$count[bb7$size >= 20 & bb7$size <= 25]) / sum(tidy_data$count[tidy_data$size >= 20 & tidy_data$size<= 25])
 # ratio is 19.72613
 
+#KS Test ---------------------------------------------------
 
+ks.test(x = bb7$count[which(bb7$size>=19 & bb7$size<=27)], y = tidy_data$count[which(tidy_data$size>=19 & tidy_data$size<=27)])
+
+#D = 1
+#p-value = 4.114e-05
+#alternative hypothesis : two-sided
+#p<0.05 fails to provide evidence that the distributions are different. However, it does not provide statistical evidence for the sameness of the distribution.
 
 # conversion estimate -------------------------
 
@@ -350,9 +357,10 @@ conversion_estimate <- function(base_data, changing_data, size_range, estimate, 
     return("oops")
   }
 }
-converter <- conversion_estimate(base_data = bb7, changing_data = tidy_data, size_range = 19:25, estimate = 23, incriment = 0.0001)
+converter <- conversion_estimate(base_data = bb7, changing_data = tidy_data, size_range = 19:27, estimate = 23, incriment = 0.0001)
 
-#the conversion estimate for size 20-38 is 47.1007!!!!!!
+#the conversion estimate for size 19-27 is 22.9537000000001!!!!!!
+
 #including 19cm changes it to 57.8662
 #however, when plotting the mortality regression, it doesn't change much. When using the conversion 20-38 and plotting log[>=19] the slope is -0.2852. While using the conversion 19-38 plotting log[>=19] the slope is -0.2846. Using the first conversion, and plotting log[>=20] slope = -0.2925. So including 19cm in the regression does change it, but the estimate itself isn't the important part.
 
@@ -386,7 +394,7 @@ ggplot(stacked_dist, aes(x=size, y=count, fill = source)) +
         panel.grid.major = element_line(colour = "black"),
         panel.grid.minor = element_line(colour = "black"))
  rm(list = "stack_PISCO","stack_CCFRP","stacked_dist")
-
+ 
 # regression mortality slope ----------------------------------------------------------------------------
 # plot the regression of log[20-45]
 # the slope is mortality of the population
@@ -433,12 +441,12 @@ log_combined$count <- log(log_combined$count)
 rm(list = "log_pisco", "log_ccfrp")
 
 #the size 
-ggplot(data=log_combined[which(log_combined$size>=19 & log_combined$size<=25),] , aes(x=size, y = count, col=source)) +
+ggplot(data=log_combined[which(log_combined$size>=19 & log_combined$size<=27),] , aes(x=size, y = count, col=source)) +
   geom_point() +
   geom_smooth(method = "lm", se=FALSE) +
-  ggtitle("log[19-25cm] regression")
+  ggtitle("log[19-27cm] regression")
 
-# heatmap combined data ------------------------------------------
+# Combined data for heatmap ------------------------------------------
 
 #creating the combined data to play around with for the heatmaps
 tidy_heatmap <- tidy(catch = BothSpecies)
@@ -454,8 +462,29 @@ combined_heatmap_data <- combined_heatmap_data %>%
   summarize(count = sum(count))
 rm(list = "tidy_heatmap", "bb6_heatmap")
 
+# Heatmap w/o regression for mortality (ie raw combined data)--------------------------------------------
 
-#ggplot heatmap controlled across size w/ regression line ----------------------------------------
+#new df to mess around with
+raw_heatmap_data <- combined_heatmap_data
+
+#always reconstruct the scaling_cutoff in case it wasn't updated when you fiddled around with the data
+scaling_cutoff <- mean(raw_heatmap_data$count) + 2*sd(raw_heatmap_data$count)
+
+#cutoff @ mean+2*sd
+raw_heatmap_data <- raw_heatmap_data[which(raw_heatmap_data$count<=scaling_cutoff),]
+
+#Rescale to 0-1
+raw_heatmap_data$count <- (raw_heatmap_data$count - min(raw_heatmap_data$count)) / (max(raw_heatmap_data$count) - min(raw_heatmap_data$count))
+
+ggplot(data = raw_heatmap_data, aes(x=size, y=depth, fill=count)) +
+  geom_tile() +
+  scale_fill_distiller(type = "div", palette = "RdBu", name = "Relative abundance") +
+  theme_dark() +
+  ggtitle("Raw Combined Data")
+
+rm(list = "raw_heatmap_data")
+
+#Heatmap controlled across size w/ regression line ----------------------------------------
 #the problem is that it is using noisy data to make a noisy conversion
 #this will plot a flat line across 1-19cm, a regression line 20-33cm, and a regression line34-45cm
 #the new ratio will be the point on the line at a size divided by maximum count (7cm)
@@ -511,7 +540,7 @@ rm(list = "i")
 #fiddling with ratios that are out of line
 #39-49cm spit out negative values
 #ratios for 39-49cm are incosistent with the trend, so we decided to just take the ratio for 38cm for both
-normalized_by_regression$ratio[which(normalized_by_regression$size>=39)] <- normalized_by_regression$ratio[37]
+normalized_by_regression$ratio[which(normalized_by_regression$size>=38)] <- normalized_by_regression$ratio[36]
 
 #Normalize the ratios so that the ratio for 2-19cm =1 instead of 2.19
 #essentially, dividing all ratios by the ratio for 2-19cm
@@ -609,7 +638,7 @@ ggplot(ratios, aes(x = size, weight = ratio)) +
   xlab("Size")
 
 #bar graph of the size distribution after normalizing with the ratios
-ggplot(ratios, aes(x = size, weight = count/2292.5)) +
+ggplot(ratios, aes(x = size, weight = count/909.86)) +
   geom_bar() +
   ggtitle("Regression normalized size distribution") +
   geom_hline(yintercept = 1.0, linetype = "dashed", color = "red")
@@ -649,14 +678,14 @@ ggplot(ggridges_plot, aes(x = size, y = depth_range, height = abundance)) +
   geom_density_ridges(stat="identity") +
   ggtitle("Regression normalized size distributions across depth")
 
-#ggplot heatmap eliminating mortality across depth ----------------------------------------------
+# Heatmap eliminating mortality across depth ----------------------------------------------
 
 #In the size distribution curve, we eliminated the effect of mortality across all depths
 #but that doesn't account for the slope of mortality once the counts are spread across depth
 #Steps:
 #1. normalize the data so that the mean of 2-19cm=1.0
 #is is analagous to drawing a flat line at 2-19cm on the size distribution
-#2. Use the ratios from the overall size distribution and multiple each cell by that ratio
+#2. Use the ratios from the overall size distribution and multiply each cell by that ratio
 #3. the result should be that 2-19cm are multiplied by 1 and everything else is multiplied by something >1
 
 #new dataframe to mess up
@@ -683,6 +712,66 @@ ggplot(data = heatmap_scale1, aes(x=size, y=depth, fill=count)) +
   scale_fill_distiller(type = "div", palette = "RdBu", name = "Relative abundance") +
   theme_dark() +
   ggtitle("Controlling for mortality across size and depth")
+
+# Heatmaps log transform ------------------------------------------------------------------------
+
+#Using the above data (eliminating for mortality across size and depth) but with a log transformation to get better resolution for the tail values
+
+#First doing the log-transform without cutting off any data
+heatmap_scale2 <- normalized_by_regression[which(normalized_by_regression$size<=40),]
+#find mean of 2-19cm
+#divide everything in $count by that mean
+heatmap_scale2$count <- heatmap_scale2$count / 
+  mean(heatmap_scale2$count[which(heatmap_scale2$size>=2 & heatmap_scale2$size<=19)])
+
+#multiply count by the ratio
+for(i in 1:nrow(heatmap_scale2)){
+  heatmap_scale2$count[i] <- heatmap_scale2$count[i] * heatmap_scale2$ratio[i]
+}
+
+#log-tranform the counts
+heatmap_scale2$log_count <- log(heatmap_scale2$count)
+
+#make the scale 0-1
+heatmap_scale2$count <- (heatmap_scale2$count - min(heatmap_scale2$count)) / (max(heatmap_scale2$count) - min(heatmap_scale2$count))
+
+#plot the log-transformation
+ggplot(data = heatmap_scale2, aes(x=size, y=depth, fill=count)) +
+  geom_tile() +
+  scale_fill_distiller(type = "div", palette = "RdBu", name = "Relative abundance") +
+  theme_dark() +
+  ggtitle("Log-tranformed controlling for mortality across size and depth (no cutoff)")
+
+
+
+# Reapeat the above steps, but use a cutoff of mean+2sd
+heatmap_scale2 <- normalized_by_regression[which(normalized_by_regression$size<=40),]
+
+#find mean of 2-19cm
+#divide everything in $count by that mean
+heatmap_scale2$count <- heatmap_scale2$count / 
+  mean(heatmap_scale2$count[which(heatmap_scale2$size>=2 & heatmap_scale2$size<=19)])
+
+#multiply count by the ratio
+for(i in 1:nrow(heatmap_scale2)){
+  heatmap_scale2$count[i] <- heatmap_scale2$count[i] * heatmap_scale2$ratio[i]
+}
+
+#log-tranform the counts
+heatmap_scale2$log_count <- log(heatmap_scale2$count)
+
+#keep only mean+2sd
+heatmap_scale2 <- heatmap_scale2[which(heatmap_scale2$count<= (mean(heatmap_scale2$count)+2*sd(heatmap_scale2$count))),]
+
+#make the scale 0-1
+heatmap_scale2$count <- (heatmap_scale2$count - min(heatmap_scale2$count)) / (max(heatmap_scale2$count) - min(heatmap_scale2$count))
+
+#plot the log-transformation
+ggplot(data = heatmap_scale2, aes(x=size, y=depth, fill=count)) +
+  geom_tile() +
+  scale_fill_distiller(type = "div", palette = "RdBu", name = "Relative abundance") +
+  theme_dark() +
+  ggtitle("Log-tranformed controlling for mortality across size and depth (cutoff @ mean+2sd)")
 
 # kelp vs everything and depth -------------------------------------------------------------------
 #Loo wants two plots that show the frequency of observations in at each depth in- and outside of kep forest
@@ -837,3 +926,4 @@ for(i in 19:45){
     mortality$F[which(mortality$size==i)] <- 0.094944*(38.15-i)-0.312
   }
 }
+
