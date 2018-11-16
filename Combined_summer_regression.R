@@ -206,6 +206,8 @@ tidy_data_year <- tidy(catch = BothSpecies, year = TRUE)
 # summing CPUE across all depths
 tidy_data <- aggregate(CPUE ~ size, data = tidy_data, FUN = sum)
 tidy_data <- rename(tidy_data, count = CPUE)
+tidy_data_year <- aggregate(CPUE ~ size + year + depth, data = tidy_data_year, FUN = sum)
+tidy_data_year <- rename(tidy_data_year, count = CPUE)
 
 # PISCO section -----------------------
 # all the PISCO data was lifted from PISCO_abundance
@@ -297,8 +299,8 @@ control_for_effort <- function(counts, samples){
   return(counts)
 }
 bb6 <- control_for_effort(counts = bb5, samples = sampling_effort)
-bb7 <- aggregate(count ~ length, data = bb6, FUN = sum)
-bb7 <- rename(bb7, size = length)
+bb6 <- rename(bb6, size = length)
+bb7 <- aggregate(count ~ size, data = bb6, FUN = sum)
 
 #KS Test ---------------------------------------------------
 
@@ -365,10 +367,10 @@ converter <- conversion_estimate(base_data = bb7, changing_data = tidy_data, siz
 
 # combining data with estimate --------------------------------------------------------------
 
-CCFRP_converted <- tidy_data
-CCFRP_converted$count <- tidy_data$count * converter
-combined_dataset <- rbind(bb7, CCFRP_converted) %>%
-  group_by(size) %>%
+CCFRP_converted <- tidy_data_year
+CCFRP_converted$count <- tidy_data_year$count * converter
+combined_dataset <- rbind(bb6, CCFRP_converted) %>%
+  group_by(size, year, depth) %>%
   summarise(count = sum(count))
 #after using group_by, there is a weird error where it gives multiple warnings: "Unknown column 'depth'". This is because group_by is making it both a tibble and a dataframe. To get rid of the error, just make `combined_dataset` a dataframe
 combined_dataset <- data.frame(combined_dataset)
@@ -377,22 +379,6 @@ combined_dataset <- data.frame(combined_dataset)
 ggplot(combined_dataset, aes(x=size, weight=count)) +
   geom_bar() +
   ggtitle("Combined data size distribution (summer)")
-
-#data for stacked histogram
-stack_PISCO <- bb7
-stack_PISCO$source <- "PISCO"
-stack_CCFRP <- CCFRP_converted
-stack_CCFRP$source <- "CCFRP"
-stacked_dist <- rbind(stack_CCFRP,stack_PISCO)
-
-#stacked size distribution histogram
-ggplot(stacked_dist, aes(x=size, y=count, fill = source)) +
-  geom_bar(stat = "identity") +
-  ggtitle("BRF size distribution (summer)") +
-  theme(panel.background = element_rect(fill = 'white'),
-        panel.grid.major = element_line(colour = "black"),
-        panel.grid.minor = element_line(colour = "black"))
-rm(list = "stack_PISCO","stack_CCFRP","stacked_dist")
 
 # regression mortality slope ----------------------------------------------------------------------------
 # plot the regression of log[20-45]
@@ -445,3 +431,12 @@ ggplot(data=log_combined[which(log_combined$size>=19 & log_combined$size<=27),] 
   geom_smooth(method = "lm", se=FALSE) +
   ggtitle("log[19-27cm] regression")
 
+
+# regression count vs size ----------------------------
+#run a regression for count explained by size
+# check the residuals for depth and year to see how much of the variation is explained by those factors
+
+fit1 <- lm(count ~ size, data = combined_dataset)
+fit2 <- lm(count ~ size + depth, data = combined_dataset)
+fit3 <- lm(count ~ size+ year, data = combined_dataset)
+fit4 <- lm(count ~ size + depth + year, data = combined_dataset)
