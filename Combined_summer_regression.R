@@ -244,7 +244,7 @@ bb3 = do.call(rbind, bb2)
 bb4 = bb3[bb3$count > 0, ]
 bb4$length <- floor(as.numeric(levels(bb4$length))[bb4$length])
 #rounds it back down from intervals of 15.5, 16.5, 17.5, etc. to integers
-bb5 <- aggregate(count ~ depth + length, data = bb4, FUN = sum)
+bb5 <- aggregate(count ~ depth + length + year, data = bb4, FUN = sum)
 
 # sampling effort -------------------------------------------------
 
@@ -289,7 +289,7 @@ control_for_effort <- function(counts, samples){
   #the for loop iterates through the rows of 'couts' and divides the frequency by the number of samples at the depth that matches both counts[i,] and samples$depth
   for(i in 1:nrow(counts)){
     print(samples[samples$depth == counts[i,1] , 2])
-    counts[i,3] <- counts[i,3] / samples[samples$depth == counts[i,1] , 2]
+    counts[i,4] <- counts[i,4] / samples[samples$depth == counts[i,1] , 2]
   }
   # normalize values to 1
   # counts$count is calling the 'count' column in the 'counts' dataframe  
@@ -299,17 +299,6 @@ control_for_effort <- function(counts, samples){
 bb6 <- control_for_effort(counts = bb5, samples = sampling_effort)
 bb7 <- aggregate(count ~ length, data = bb6, FUN = sum)
 bb7 <- rename(bb7, size = length)
-
-# Ratio of PISCO to CCFRP in overlap ------------------------------
-
-#trying to get a sense of what the conversion ratio should be
-# PISCO counts of size 19-25cm divided by CCFRP 19-25cm counts
-sum(bb7$count[bb7$size >= 19 & bb7$size <= 25]) / sum(tidy_data$count[tidy_data$size >= 19 & tidy_data$size<= 25])
-# ratio is 22.95381
-
-#PISCO 20-25/CCFRP 20-25
-sum(bb7$count[bb7$size >= 20 & bb7$size <= 25]) / sum(tidy_data$count[tidy_data$size >= 20 & tidy_data$size<= 25])
-# ratio is 19.72613
 
 #KS Test ---------------------------------------------------
 
