@@ -370,10 +370,8 @@ converter <- conversion_estimate(base_data = bb7, changing_data = tidy_data, siz
 CCFRP_converted <- tidy_data_year
 CCFRP_converted$count <- tidy_data_year$count * converter
 combined_dataset <- rbind(bb6, CCFRP_converted) %>%
-  group_by(size, year, depth) %>%
+  group_by(size) %>%
   summarise(count = sum(count))
-#after using group_by, there is a weird error where it gives multiple warnings: "Unknown column 'depth'". This is because group_by is making it both a tibble and a dataframe. To get rid of the error, just make `combined_dataset` a dataframe
-combined_dataset <- data.frame(combined_dataset)
 
 # combined size distribution ----------------------------------------------
 ggplot(combined_dataset, aes(x=size, weight=count)) +
@@ -436,7 +434,11 @@ ggplot(data=log_combined[which(log_combined$size>=19 & log_combined$size<=27),] 
 #run a regression for count explained by size
 # check the residuals for depth and year to see how much of the variation is explained by those factors
 
-fit1 <- lm(count ~ size, data = combined_dataset)
-fit2 <- lm(count ~ size + depth, data = combined_dataset)
-fit3 <- lm(count ~ size+ year, data = combined_dataset)
-fit4 <- lm(count ~ size + depth + year, data = combined_dataset)
+regression_dataset <- rbind(bb6, CCFRP_converted) %>%
+  group_by(size, year, depth) %>%
+  summarise(count = sum(count))
+
+fit1 <- lm(count ~ size, data = regression_dataset)
+fit2 <- lm(count ~ size + depth, data = regression_dataset)
+fit3 <- lm(count ~ size+ year, data = regression_dataset)
+fit4 <- lm(count ~ size + depth + year, data = regression_dataset)
