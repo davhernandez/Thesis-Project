@@ -643,26 +643,35 @@ ggplot(ratios, aes(x = size, weight = count/909.86)) +
   ggtitle("Regression normalized size distribution") +
   geom_hline(yintercept = 1.0, linetype = "dashed", color = "red")
 
-#size distributions ggridges ----------------------------------------------------------------
+#ggridges size distribution----------------------------------------------------------------
 #start by using normalized_by_regression so that mortality isn't an issue
 #make a categorical variable for the depths 0-10, 11-20, 21-30, 31-40, 41-50
 #categorical variable is input into new column `depth_range`
 normalized_by_regression$depth_range <- 0
 for(i in 1:nrow(normalized_by_regression)){
-  if(normalized_by_regression$depth[i]<=10){
-    normalized_by_regression$depth_range[i] <- "0-10"
+  if(normalized_by_regression$depth[i]<=5){
+    normalized_by_regression$depth_range[i] <- "0-5"
   } else
-    if(normalized_by_regression$depth[i]<=20 && normalized_by_regression$depth[i] >10){
-      normalized_by_regression$depth_range[i] <- "11-20"
+    if(normalized_by_regression$depth[i]<=10 && normalized_by_regression$depth[i] >5){
+      normalized_by_regression$depth_range[i] <- "05-10" #for some reason, it doesn't order this category correctly when it is just "5-10"
     } else
-      if(normalized_by_regression$depth[i]<=30 && normalized_by_regression$depth[i] >20){
-        normalized_by_regression$depth_range[i] <- "21-30"
+      if(normalized_by_regression$depth[i]<=15 && normalized_by_regression$depth[i] >10){
+        normalized_by_regression$depth_range[i] <- "10-15"
       } else
-        if(normalized_by_regression$depth[i]<=40 && normalized_by_regression$depth[i] >30){
-          normalized_by_regression$depth_range[i] <- "31-40"
+        if(normalized_by_regression$depth[i]<=20 && normalized_by_regression$depth[i] >15){
+          normalized_by_regression$depth_range[i] <- "15-20"
         } else
-          if(normalized_by_regression$depth[i]<=50 && normalized_by_regression$depth[i] >40){
-            normalized_by_regression$depth_range[i] <- "41-50"
+          if(normalized_by_regression$depth[i]<=25 && normalized_by_regression$depth[i] >20){
+            normalized_by_regression$depth_range[i] <- "20-25"
+          } else
+            if(normalized_by_regression$depth[i]<=30 && normalized_by_regression$depth[i] >25){
+              normalized_by_regression$depth_range[i] <- "25-30"
+            } else
+              if(normalized_by_regression$depth[i]<=35 && normalized_by_regression$depth[i] >30){
+                normalized_by_regression$depth_range[i] <- "30-35"
+              } else
+                if(normalized_by_regression$depth[i] >35){
+                  normalized_by_regression$depth_range[i] <- "35-42"
           } else {
             print("something messed up")
           }
