@@ -653,40 +653,103 @@ for(i in 1:nrow(normalized_by_regression)){
     normalized_by_regression$depth_range[i] <- "0-5"
   } else
     if(normalized_by_regression$depth[i]<=10 && normalized_by_regression$depth[i] >5){
-      normalized_by_regression$depth_range[i] <- "05-10" #for some reason, it doesn't order this category correctly when it is just "5-10"
+      normalized_by_regression$depth_range[i] <- "6-10" #for some reason, it doesn't order this category correctly when it is just "5-10"
     } else
       if(normalized_by_regression$depth[i]<=15 && normalized_by_regression$depth[i] >10){
-        normalized_by_regression$depth_range[i] <- "10-15"
+        normalized_by_regression$depth_range[i] <- "11-15"
       } else
         if(normalized_by_regression$depth[i]<=20 && normalized_by_regression$depth[i] >15){
-          normalized_by_regression$depth_range[i] <- "15-20"
+          normalized_by_regression$depth_range[i] <- "16-20"
         } else
           if(normalized_by_regression$depth[i]<=25 && normalized_by_regression$depth[i] >20){
-            normalized_by_regression$depth_range[i] <- "20-25"
+            normalized_by_regression$depth_range[i] <- "21-25"
           } else
             if(normalized_by_regression$depth[i]<=30 && normalized_by_regression$depth[i] >25){
-              normalized_by_regression$depth_range[i] <- "25-30"
+              normalized_by_regression$depth_range[i] <- "26-30"
             } else
               if(normalized_by_regression$depth[i]<=35 && normalized_by_regression$depth[i] >30){
-                normalized_by_regression$depth_range[i] <- "30-35"
+                normalized_by_regression$depth_range[i] <- "31-35"
               } else
                 if(normalized_by_regression$depth[i] >35){
-                  normalized_by_regression$depth_range[i] <- "35-42"
+                  normalized_by_regression$depth_range[i] <- "36-42"
           } else {
             print("something messed up")
           }
 }
 
 #group them together within the categories
+#ungroup allows you to reorder the levels of 'depth' without throwing the error 'Error: cannot modify grouping variable'
 ggridges_plot <- normalized_by_regression %>%
   group_by(size, depth_range) %>%
-  summarise(abundance = sum(count))
+  summarise(abundance = sum(count)) %>%
+  ungroup()
+
+#ggridges has trouble ordering the depth ranges on the y-axis correctly. To correct this, you have to re-order the levels of the factor 'size_range' 
+depth_order <- c("36-42", "31-35", "26-30", "21-25", "16-20", "11-15", "6-10", "0-5")
+ggridges_plot <- ggridges_plot %>%
+  mutate(depth_range = factor(depth_range, levels = rev(depth_order)))
+#clean up the depth order variable
+rm(list = "depth_order")
 
 #plot overlapping size distributions with ggridges
 ggplot(ggridges_plot, aes(x = size, y = depth_range, height = abundance)) +
   geom_density_ridges(stat="identity") +
-  ggtitle("Regression normalized size distributions across depth")
+  ggtitle("Regression normalized size distributions across depth") +
+  xlab("Size (cm)") +
+  ylab("Depth (m)")
 
+
+# ggridges depth distribution ------------------------------------------------
+
+normalized_by_regression$size_range <- 0
+
+for(i in 1:nrow(normalized_by_regression)){
+  if(normalized_by_regression$size[i]<=10){
+    normalized_by_regression$size_range[i] <- "0-10"
+  } else
+    if(normalized_by_regression$size[i]>10 && normalized_by_regression$size[i]<=15){
+      normalized_by_regression$size_range[i] <- "11-15"
+    } else
+      if(normalized_by_regression$size[i]>15 && normalized_by_regression$size[i]<=20){
+        normalized_by_regression$size_range[i] <- "16-20"
+      } else
+        if(normalized_by_regression$size[i]>20 && normalized_by_regression$size[i]<=25){
+          normalized_by_regression$size_range[i] <- "21-25"
+        } else
+          if(normalized_by_regression$size[i]>25 && normalized_by_regression$size[i]<=30){
+            normalized_by_regression$size_range[i] <- "26-30"
+          } else
+            if(normalized_by_regression$size[i]>30 && normalized_by_regression$size[i]<=35){
+              normalized_by_regression$size_range[i] <- "31-35"
+            } else
+              if(normalized_by_regression$size[i]>35 && normalized_by_regression$size[i]<=40){
+                normalized_by_regression$size_range[i] <- "36-40"
+              } else
+                if(normalized_by_regression$size[i]>40){
+                  normalized_by_regression$size_range[i] <- ">40"
+                } else {
+                  print("You dun goofed")
+                }
+}
+
+#ungroup is necessary because the next section on reordering the factor levels throws 'Error: cannot modify grouping variable'
+ggridges_depth <- normalized_by_regression %>%
+  group_by(size_range, depth) %>%
+  summarise(abundance = sum(count)) %>%
+  ungroup()
+
+#ggridges has trouble ordering the depth ranges on the y-axis correctly. To correct this, you have to re-order the levels of the factor 'size_range'
+size_order <- c(">40", "36-40", "31-35", "26-30", "21-25", "16-20", "11-15","0-10")
+ggridges_depth <- ggridges_depth %>%
+  mutate(size_range = factor(size_range, levels = rev(size_order)))
+#clean remove the ordering variable
+rm(list = "size_order")
+  
+ggplot(ggridges_depth, aes(x = depth, y = size_range, height = abundance)) +
+  geom_density_ridges(stat = "identity") +
+  ggtitle( "Regression normalized depth distributions") +
+  xlab("Depth (m)") +
+  ylab("Size (cm)")
 # Heatmap eliminating mortality across depth ----------------------------------------------
 
 #In the size distribution curve, we eliminated the effect of mortality across all depths
